@@ -6,6 +6,7 @@ using System.Net.Sockets;
 namespace PickToLight.Core {
     public class Controller {
         public byte MessageType { get; set; } = 0x60;
+        public event Action<byte[]>? ReadAction;
         private TcpClient? _tcpClient;
         private NetworkStream? _networkStream;
         private CancellationTokenSource? _cancellationTokenSource;
@@ -45,12 +46,16 @@ namespace PickToLight.Core {
                 communicationControlBlock[0] = firstByteOfCommunicationControlBlock;
                 Array.Copy(remainingBytesOfCommunicationControlBlock, 0, communicationControlBlock, 1, remainingBytesOfCommunicationControlBlock.Length);
                 Debug.WriteLine($"Read: {CommunicationControlBlockConverter.ToString(bytes: communicationControlBlock)}");
+                ReadInvoke(communicationControlBlock);
             }
         }
         private void ReadContinuously(CancellationToken cancellationToken) {
             while (!cancellationToken.IsCancellationRequested) {
                 Read();
             }
+        }
+        private void ReadInvoke(byte[] communicationControlBlock) {
+            ReadAction!.Invoke(communicationControlBlock);
         }
         public void Connect(string ipAddress, int port) {
             try {
