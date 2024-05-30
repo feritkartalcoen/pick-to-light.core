@@ -1,52 +1,16 @@
 ﻿using PickToLight.Core.Models.Configurations;
 using PickToLight.Core.Models.Enums;
 using PickToLight.Core.Utilities.Converters;
+using System.Diagnostics;
 using System.Net.Sockets;
 namespace PickToLight.Core {
     public class Controller {
         public byte MessageType { get; set; } = 0x60;
         private TcpClient? _tcpClient;
         private NetworkStream? _networkStream;
-        public void Connect(string ipAddress, int port) {
-            try {
-                if (_tcpClient == null || !_tcpClient.Connected) {
-                    _tcpClient = new TcpClient(ipAddress, port);
-                    _networkStream = _tcpClient.GetStream();
-                    Console.WriteLine($"Connected to {ipAddress}:{port}");
-                } else {
-                    Console.WriteLine($"Already connected to {ipAddress}:{port}");
-                }
-            } catch (ArgumentNullException exception) {
-                Console.WriteLine($"ArgumentNullException: {exception.Message}");
-            } catch (SocketException exception) {
-                Console.WriteLine($"SocketException: {exception.Message}");
-            } catch (Exception exception) {
-                Console.WriteLine($"Exception: {exception.Message}");
-            }
-        }
-        public void Disconnect() {
-            try {
-                if (_tcpClient != null && _tcpClient.Connected && _networkStream != null) {
-                    _networkStream.Close();
-                    _networkStream = null;
-                    _tcpClient.Close();
-                    _tcpClient = null;
-                    Console.WriteLine("Disconnected");
-                } else {
-                    Console.WriteLine("No active connection to disconnect");
-                }
-            } catch (InvalidOperationException exception) {
-                Console.WriteLine($"InvalidOperationException: {exception.Message}");
-            } catch (Exception exception) {
-                Console.WriteLine($"Exception: {exception.Message}");
-            }
-        }
+        private CancellationTokenSource? _cancellationTokenSource;
         private void Write(byte communicationControlBlockLength, byte subCommand, byte? subNode = null, byte[]? data = null) {
             int baseLength = 7 + (subNode == null ? 0 : 1);
-            int totalLength = baseLength + (data?.Length ?? 0);
-            if (communicationControlBlockLength != totalLength) {
-                throw new ArgumentException("Invalid communicationControlBlockLength");
-            }
             byte[] communicationControlBlock = new byte[communicationControlBlockLength];
             communicationControlBlock[0] = (byte)communicationControlBlockLength;
             communicationControlBlock[1] = 0x00;
@@ -64,47 +28,63 @@ namespace PickToLight.Core {
             try {
                 if (_networkStream != null && _networkStream.CanWrite) {
                     _networkStream.Write(communicationControlBlock, 0, communicationControlBlock.Length);
-                    Console.WriteLine("Wrote successfully");
+                    Debug.WriteLine($"Wrote: {CommunicationControlBlockConverter.ToString(bytes: communicationControlBlock)}");
                 } else {
-                    Console.WriteLine("Cannot write to the network stream");
+                    Debug.WriteLine("Cannot write to the network stream");
                 }
-            } catch (ObjectDisposedException exception) {
-                Console.WriteLine($"ObjectDisposedException: {exception.Message}");
-            } catch (InvalidOperationException exception) {
-                Console.WriteLine($"InvalidOperationException: {exception.Message}");
-            } catch (IOException exception) {
-                Console.WriteLine($"IOException: {exception.Message}");
             } catch (Exception exception) {
-                Console.WriteLine($"Exception: {exception.Message}");
+                Debug.WriteLine(exception.Message);
             }
         }
-        public byte[] Read() {
-            try {
-                if (_networkStream != null && _networkStream.CanRead) {
-                    byte[] lengthBuffer = new byte[1];
-                    int bytesRead = _networkStream.Read(lengthBuffer, 0, 1);
-                    if (bytesRead == 0) {
-                        Console.WriteLine("No data available to read");
-                        return [];
-                    }
-                    int dataLength = lengthBuffer[0];
-                    byte[] buffer = new byte[dataLength];
-                    bytesRead = _networkStream.Read(buffer, 0, dataLength);
-                    return buffer;
-                } else {
-                    Console.WriteLine("Cannot read from the network stream");
-                    return [];
-                }
-            } catch (ObjectDisposedException exception) {
-                Console.WriteLine($"ObjectDisposedException: {exception.Message}");
-            } catch (InvalidOperationException exception) {
-                Console.WriteLine($"InvalidOperationException: {exception.Message}");
-            } catch (IOException exception) {
-                Console.WriteLine($"IOException: {exception.Message}");
-            } catch (Exception exception) {
-                Console.WriteLine($"Exception: {exception.Message}");
+        private void Read() {
+            if (_networkStream!.DataAvailable) {
+                byte firstByteOfCommunicationControlBlock = (byte)_networkStream.ReadByte();
+                byte[] remainingBytesOfCommunicationControlBlock = new byte[firstByteOfCommunicationControlBlock - 1];
+                _networkStream.Read(remainingBytesOfCommunicationControlBlock, 0, remainingBytesOfCommunicationControlBlock.Length);
+                byte[] communicationControlBlock = new byte[1 + remainingBytesOfCommunicationControlBlock.Length];
+                communicationControlBlock[0] = firstByteOfCommunicationControlBlock;
+                Array.Copy(remainingBytesOfCommunicationControlBlock, 0, communicationControlBlock, 1, remainingBytesOfCommunicationControlBlock.Length);
+                Debug.WriteLine($"Read: {CommunicationControlBlockConverter.ToString(bytes: communicationControlBlock)}");
             }
-            return [];
+        }
+        private void ReadContinuously(CancellationToken cancellationToken) {
+            while (!cancellationToken.IsCancellationRequested) {
+                Read();
+            }
+        }
+        public void Connect(string ipAddress, int port) {
+            try {
+                if (_tcpClient == null || !_tcpClient.Connected) {
+                    _tcpClient = new TcpClient(ipAddress, port);
+                    _networkStream = _tcpClient.GetStream();
+                    _cancellationTokenSource = new CancellationTokenSource();
+                    Task.Run(() => ReadContinuously(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
+                    Debug.WriteLine($"Connected to {ipAddress}:{port}");
+                    Debug.WriteLine($"Read thread started");
+                } else {
+                    Debug.WriteLine($"Already connected to {ipAddress}:{port}");
+                }
+            } catch (Exception exception) {
+                Debug.WriteLine(exception.Message);
+            }
+        }
+        public void Disconnect() {
+            try {
+                if (_tcpClient != null && _tcpClient.Connected && _networkStream != null) {
+                    _cancellationTokenSource?.Cancel();
+                    _cancellationTokenSource = null;
+                    Debug.WriteLine($"Read thread finished");
+                    _networkStream.Close();
+                    _networkStream = null;
+                    _tcpClient.Close();
+                    _tcpClient = null;
+                    Debug.WriteLine("Disconnected");
+                } else {
+                    Debug.WriteLine("No active connection to disconnect");
+                }
+            } catch (Exception exception) {
+                Debug.WriteLine(exception.Message);
+            }
         }
         public void Display(string value, byte subNode = 0xFC, bool shouldFlash = false) {
             byte[] data = new byte[7];
@@ -187,7 +167,6 @@ namespace PickToLight.Core {
             Write(communicationControlBlockLength: 0x0A, subCommand: 0x1F, subNode: subNode, data: data);
         }
         // TODO: Implement SetDigitsBlinkingTimeInterval
-        public void SetDigitsBlinkingTimeInterval() { }
         public void SetDigitsBrightness(byte subNode = 0xFC, DigitsBrightnessConfiguration? digitsBrightnessConfiguration = null) {
             digitsBrightnessConfiguration ??= new DigitsBrightnessConfiguration();
             byte brightness = ConfigurationConverter.DigitsBrightnessConfigurationToByte(digitsBrightnessConfiguration);
