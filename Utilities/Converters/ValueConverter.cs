@@ -13,5 +13,17 @@ namespace PickToLight.Core.Utilities.Converters {
             }
             return bytes;
         }
+        public static string BytesToStringDisplayValue(byte[] bytes) {
+            if (bytes.Length != 6) {
+                throw new ArgumentException("Input byte array must be exactly 6 bytes long.");
+            }
+            int startIndex = 0;
+            while (startIndex < 6 && bytes[startIndex] == 0) {
+                startIndex++;
+            }
+            byte[] trimmedBytes = new byte[6 - startIndex];
+            Array.Copy(bytes, startIndex, trimmedBytes, 0, 6 - startIndex);
+            return Encoding.ASCII.GetString(trimmedBytes);
+        }
     }
 }

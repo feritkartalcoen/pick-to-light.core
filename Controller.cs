@@ -199,7 +199,7 @@ namespace PickToLight.Core {
         public void SetControllerPollingRange(byte pollingRange = 0xFA) {
             Write(communicationControlBlockLength: 0x08, subCommand: 0x08, subNode: pollingRange);
         }
-        public void GetDeviceStatus() {
+        public void GetConnectedPickTagsNodeAddresses() {
             Write(communicationControlBlockLength: 0x07, subCommand: 0x09);
         }
         public void Reset(byte subNode = 0xFC) {
