@@ -1,5 +1,5 @@
 ﻿namespace PickToLight.Core.Models.Configurations {
-    public class PickTagModeConfiguration {
+    public class PickTagModeConfig {
         public bool IsConfirmationButtonEnabled { get; set; } = true;
         public bool IsShortageButtonEnabled { get; set; } = true;
         public bool IsUpDownCountEnabled { get; set; } = false;

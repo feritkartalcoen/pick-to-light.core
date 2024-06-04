@@ -1,6 +1,6 @@
 ﻿using PickToLight.Core.Models.Enums;
 namespace PickToLight.Core.Models.Configurations {
-    public class SpecialFunctionOneConfiguration {
+    public class SpecialFunctionOneConfig {
         public PickTagMode PickTagMode { get; set; } = PickTagMode.Pick;
         public bool IsStockModeQuickCompilationEnabled { get; set; } = false;
         public bool IsCompletionMarkDisplayingEnabled { get; set; } = false;

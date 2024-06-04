@@ -1,7 +1,7 @@
 ﻿using PickToLight.Core.Models.Enums;
 namespace PickToLight.Core {
     public class PickTag {
-        public byte NodeAddress { get; set; }
+        public byte Node { get; set; }
         public byte[] Data { get; set; } = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
         public bool IsConnected { get; set; } = false;
         public bool IsLedOn { get; set; } = false;
@@ -11,7 +11,7 @@ namespace PickToLight.Core {
         public static List<PickTag> CreatePickTags(int numberOfInstances) {
             List<PickTag> pickTags = [];
             for (int i = 1; i <= numberOfInstances; i++) {
-                pickTags.Add(new PickTag { NodeAddress = (byte)i });
+                pickTags.Add(new PickTag { Node = (byte)i });
             }
             return pickTags;
         }

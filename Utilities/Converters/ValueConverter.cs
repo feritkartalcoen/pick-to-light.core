@@ -1,7 +1,7 @@
 ﻿using System.Text;
 namespace PickToLight.Core.Utilities.Converters {
     public partial class ValueConverter {
-        public static byte[] StringDisplayValueToBytes(string value) {
+        public static byte[] ToBytes(string value) {
             if (value.Length > 6) {
                 throw new ArgumentException("Input string can be at most 6 characters long.");
             }
@@ -13,7 +13,7 @@ namespace PickToLight.Core.Utilities.Converters {
             }
             return bytes;
         }
-        public static string BytesToStringDisplayValue(byte[] bytes) {
+        public static string ToString(byte[] bytes) {
             if (bytes.Length != 6) {
                 throw new ArgumentException("Input byte array must be exactly 6 bytes long.");
             }

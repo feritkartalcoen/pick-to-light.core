@@ -1,5 +1,5 @@
 ﻿namespace PickToLight.Core.Models.Configurations {
-    public class SpecialFunctionTwoConfiguration {
+    public class SpecialFunctionTwoConfig {
         public bool IsDefaultReservedOneEnabled { get; private set; } = false;
         public bool IsDefaultReservedTwoEnabled { get; private set; } = true;
         public bool IsDefaultReservedThreeEnabled { get; private set; } = false;

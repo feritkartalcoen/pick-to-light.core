@@ -1,5 +1,5 @@
 ﻿namespace PickToLight.Core.Utilities.Converters {
-    public class CommunicationControlBlockConverter {
+    public class CCBConverter {
         public static byte[] ToByte(string bytesString) {
             string[] strings = bytesString.Split(" ");
             byte[] bytes = new byte[strings.Length];
