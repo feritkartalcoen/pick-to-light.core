@@ -1,196 +1,282 @@
 ﻿using PickToLight.Core.Models.Configurations;
 using PickToLight.Core.Models.Enums;
 using PickToLight.Core.Utilities.Converters;
-using System.Diagnostics;
 using System.Net.Sockets;
+using System.Text;
 namespace PickToLight.Core {
     public class Controller {
         public byte MessageType { get; set; } = 0x60;
         private TcpClient? _client;
         private NetworkStream? _stream;
-        private void Write(byte ccbLength, byte subCommand, byte? subNode = null, byte[]? data = null) {
-            int baseLength = 7 + (subNode == null ? 0 : 1);
-            byte[] ccb = new byte[ccbLength];
-            ccb[0] = (byte)ccbLength;
-            ccb[1] = 0x00;
-            ccb[2] = MessageType;
-            ccb[3] = 0x00;
-            ccb[4] = 0x00;
-            ccb[5] = 0x00;
-            ccb[6] = subCommand;
-            if (subNode != null) {
-                ccb[7] = (byte)subNode;
-            }
-            if (data != null) {
-                Array.Copy(data, 0, ccb, baseLength, data.Length);
-            }
-            try {
-                if (_stream != null && _stream.CanWrite) {
-                    _stream.Write(ccb, 0, ccb.Length);
-                    Debug.WriteLine($"Wrote: {CCBConverter.ToString(bytes: ccb)}");
-                } else {
-                    Debug.WriteLine("Cannot write to the network stream");
-                }
-            } catch (Exception exception) {
-                Debug.WriteLine(exception.Message);
-            }
-        }
-        private void Read() {
-            if (_stream!.DataAvailable) {
-                byte ccbFirstByte = (byte)_stream.ReadByte();
-                byte[] ccbRemainingBytes = new byte[ccbFirstByte - 1];
-                _stream.Read(ccbRemainingBytes, 0, ccbRemainingBytes.Length);
-                byte[] ccb = new byte[1 + ccbRemainingBytes.Length];
-                ccb[0] = ccbFirstByte;
-                Array.Copy(ccbRemainingBytes, 0, ccb, 1, ccbRemainingBytes.Length);
-                Debug.WriteLine($"Read: {CCBConverter.ToString(bytes: ccb)}");
-            }
-        }
-        public void Connect(string ip, int port) {
+        public event Action<byte[]>? ReadAction;
+        private CancellationTokenSource? _cancellationTokenSource;
+        #region Connection Methods
+        public string Connect(string ip, int port) {
             try {
                 if (_client == null || !_client.Connected) {
                     _client = new TcpClient(ip, port);
                     _stream = _client.GetStream();
-                    Debug.WriteLine($"Connected to {ip}:{port}");
+                    _cancellationTokenSource = new CancellationTokenSource();
+                    Task.Run(() => ReadContinuously(_cancellationTokenSource.Token), _cancellationTokenSource.Token);
+                    return ($"Connected to {ip}:{port}.");
                 } else {
-                    Debug.WriteLine($"Already connected to {ip}:{port}");
+                    return ($"Already connected to {ip}:{port}.");
                 }
             } catch (Exception exception) {
-                Debug.WriteLine(exception.Message);
+                return (exception.Message);
             }
         }
-        public void Disconnect() {
+        public string Disconnect() {
             try {
                 if (_client != null && _client.Connected && _stream != null) {
+                    _cancellationTokenSource?.Cancel();
+                    _cancellationTokenSource = null;
                     _stream.Close();
                     _stream = null;
                     _client.Close();
                     _client = null;
-                    Debug.WriteLine("Disconnected");
+                    return ("Disconnected.");
                 } else {
-                    Debug.WriteLine("No active connection to disconnect");
+                    return ("No active connection to disconnect.");
                 }
             } catch (Exception exception) {
-                Debug.WriteLine(exception.Message);
+                return (exception.Message);
             }
         }
-        public void Display(string value, byte subNode = 0xFC, bool shouldFlash = false) {
+        #endregion
+        #region Write Methods
+        private string Write(byte ccbLength, byte subCommand, byte? subNode = null, byte[]? data = null, string result = "") {
+            List<byte> ccbList = [ccbLength, 0x00, MessageType, 0x00, 0x00, 0x00, subCommand];
+            if (subNode != null) ccbList.Add((byte)subNode);
+            if (data != null) ccbList.AddRange(data);
+            byte[] ccb = [.. ccbList];
+            try {
+                if (_stream != null && _stream.CanWrite) {
+                    _stream.Write(ccb, 0, ccb.Length);
+                    return result == "" ? ($"Wrote: {CCBConverter.ToString(bytes: ccb)}.") : result;
+                } else {
+                    return ("Cannot write to the network stream.");
+                }
+            } catch (Exception exception) {
+                return (exception.Message);
+            }
+        }
+        public string Display(string value, byte subNode = 0xFC, bool shouldFlash = false) {
             byte[] data = new byte[7];
             byte[] valueBytes = ValueConverter.ToBytes(value);
             Array.Copy(valueBytes, 0, data, 0, valueBytes.Length);
             data[6] = 0x00;
-            Write(ccbLength: 0x0F, subCommand: (byte)(!shouldFlash ? 0x00 : 0x10), subNode: subNode, data: data);
+            return Write(ccbLength: 0x0F, subCommand: (byte)(!shouldFlash ? 0x00 : 0x10), subNode: subNode, data: data, result: $"Displayed {value}.");
         }
-        public void Clear(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x01, subNode: subNode);
+        public string Clear(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x01, subNode: subNode, result: $"Cleared data.");
         }
-        public void TurnLedOn(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x02, subNode: subNode);
+        public string TurnLedOn(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x02, subNode: subNode, result: $"Turned LED on.");
         }
-        public void TurnLedOff(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x03, subNode: subNode);
+        public string TurnLedOff(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x03, subNode: subNode, result: $"Turned LED off.");
         }
-        public void TurnBuzzerOn(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x04, subNode: subNode);
+        public string TurnBuzzerOn(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x04, subNode: subNode, result: $"Turned buzzer on.");
         }
-        public void TurnBuzzerOff(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x05, subNode: subNode);
+        public string TurnBuzzerOff(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x05, subNode: subNode, result: $"Turned buzzer off.");
         }
-        public void Flash(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x11, subNode: subNode);
+        public string Flash(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x11, subNode: subNode, result: $"Flashing.");
         }
-        public void SetFlashingTimeInterval(byte subNode = 0xFc, FlashingTimeInterval interval = FlashingTimeInterval.QuarterSecond) {
+        public string SetFlashingTimeInterval(byte subNode = 0xFc, FlashingTimeInterval interval = FlashingTimeInterval.QuarterSecond) {
             byte[] data = [0x00, (byte)interval];
-            Write(ccbLength: 0x0A, subCommand: 0x12, subNode: subNode, data: data);
+            return Write(ccbLength: 0x0A, subCommand: 0x12, subNode: subNode, data: data, result: $"Flashing time interval changed to {interval.ToString().ToLowerInvariant()}.");
         }
-        public void DisplayNodeAddress(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x13, subNode: subNode);
+        public string DisplayNodeAddress(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x13, subNode: subNode, result: $"Displayed node address.");
         }
-        public void DisableShortageButton(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x15, subNode: subNode);
+        public string DisableShortageButton(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x15, subNode: subNode, result: $"Shortage button disabled.");
         }
-        public void EnableShortageButton(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x16, subNode: subNode);
+        public string EnableShortageButton(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x16, subNode: subNode, result: $"Shortage button enabled.");
         }
-        public void EmulateConfirmationButtonPressing(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x17, subNode: subNode);
+        public string EmulateConfirmationButtonPressing(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x17, subNode: subNode, result: $"Emulated confirmation button pressing.");
         }
-        public void EmulateShortageButtonPressing(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x18, subNode: subNode);
+        public string EmulateShortageButtonPressing(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x18, subNode: subNode, result: $"Emulated shortage button pressing.");
         }
-        public void SwitchToStockMode(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x19, subNode: subNode);
+        public string SwitchToStockMode(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x19, subNode: subNode, result: $"Switched to stock mode.");
         }
-        public void SwitchToPickMode(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x1A, subNode: subNode);
+        public string SwitchToPickMode(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x1A, subNode: subNode, result: $"Switched to pick mode.");
         }
-        public void DisableConfirmationButton(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x1B, subNode: subNode);
+        public string DisableConfirmationButton(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x1B, subNode: subNode, result: $"Confirmation button disabled.");
         }
-        public void EnableConfirmationButton(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x1C, subNode: subNode);
+        public string EnableConfirmationButton(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x1C, subNode: subNode, result: $"Confirmation button enabled.");
         }
-        public void SetAvailableDigitsForCounting(byte subNode = 0xFC, int availableDigits = 6) {
+        public string SetAvailableDigitsForCounting(byte subNode = 0xFC, int availableDigits = 6) {
             byte[] data = [(byte)availableDigits];
-            Write(ccbLength: 0x09, subCommand: 0x1E, subNode: subNode, data: data);
+            return Write(ccbLength: 0x09, subCommand: 0x1E, subNode: subNode, data: data, result: $"Available digits for counting are set to {availableDigits}.");
         }
-        public void SetColor(Color color, byte subNode = 0xFC, bool shouldStore = false) {
+        public string SetColor(Color color, byte subNode = 0xFC, bool shouldStore = false) {
             byte[] data = shouldStore ? [0x00, (byte)color, 0x55] : [0x00, (byte)color];
-            Write(ccbLength: shouldStore ? (byte)0x0B : (byte)0x0A, subCommand: 0x1F, subNode: subNode, data: data);
+            return Write(ccbLength: shouldStore ? (byte)0x0B : (byte)0x0A, subCommand: 0x1F, subNode: subNode, data: data, result: $"Color changed to {color.ToString().ToLower()}.");
         }
-        public void SetValidDigitsForCounting(byte subNode = 0xFC, ValidDigitsConfig? config = null) {
+        public string SetValidDigitsForCounting(byte subNode = 0xFC, ValidDigitsConfig? config = null) {
             config ??= new ValidDigitsConfig();
             byte validDigits = ConfigConverter.ValidDigitsConfigurationToByte(config);
             byte[] data = [0x01, validDigits];
-            Write(ccbLength: 0x0A, subCommand: 0x1F, subNode: subNode, data: data);
+            return Write(ccbLength: 0x0A, subCommand: 0x1F, subNode: subNode, data: data, result: $"Valid digits for counting are set.");
         }
-        public void ConfigureMode(byte subNode = 0xFC, PickTagModeConfig? config = null, bool shouldStore = false) {
+        public string ConfigureMode(byte subNode = 0xFC, PickTagModeConfig? config = null, bool shouldStore = false) {
             config ??= new PickTagModeConfig();
             byte mode = ConfigConverter.PickTagModeConfigurationToByte(config);
             byte[] data = shouldStore ? [0x02, mode, 0x55] : [0x03, mode];
-            Write(ccbLength: shouldStore ? (byte)0x0B : (byte)0x0A, subCommand: 0x1F, subNode: subNode, data: data);
+            return Write(ccbLength: shouldStore ? (byte)0x0B : (byte)0x0A, subCommand: 0x1F, subNode: subNode, data: data, result: $"Pick tag mode is configured.");
         }
-        public void SetBlinkingTimeInterval(byte subNode = 0xFC, BlinkingTimeInterval interval = BlinkingTimeInterval.QuarterSecond) {
+        public string SetBlinkingTimeInterval(byte subNode = 0xFC, BlinkingTimeInterval interval = BlinkingTimeInterval.QuarterSecond) {
             byte[] data = [0x04, (byte)interval];
-            Write(ccbLength: 0x0A, subCommand: 0x1F, subNode: subNode, data: data);
+            return Write(ccbLength: 0x0A, subCommand: 0x1F, subNode: subNode, data: data, result: $"Blinking time interval changed to {interval.ToString().ToLowerInvariant()}.");
         }
-        // TODO: Implement SetDigitsBlinkingTimeInterval
-        public void SetDigitsBrightness(byte subNode = 0xFC, DigitsBrightnessConfig? config = null) {
+        // TODO: Implement SetDigitsBlinkingTimeInterval.
+        public string SetDigitsBrightness(byte subNode = 0xFC, DigitsBrightnessConfig? config = null) {
             config ??= new DigitsBrightnessConfig();
             byte brightness = ConfigConverter.DigitsBrightnessConfigurationToByte(config);
             byte[] data = [0x06, brightness];
-            Write(ccbLength: 0x0A, subCommand: 0x1F, subNode: subNode, data: data);
+            return Write(ccbLength: 0x0A, subCommand: 0x1F, subNode: subNode, data: data, result: $"Digits brightness are changed.");
         }
-        public void ConfigureSpecialFunctionOne(byte subNode = 0xFC, SpecialFunctionOneConfig? config = null, bool shouldStore = false) {
+        public string ConfigureSpecialFunctionOne(byte subNode = 0xFC, SpecialFunctionOneConfig? config = null, bool shouldStore = false) {
             config ??= new SpecialFunctionOneConfig();
             byte configuration = ConfigConverter.SpecialFunctionOneConfigurationToByte(config);
             byte[] data = shouldStore ? [0x0A, configuration, 0x55] : [0x0A, configuration];
-            Write(ccbLength: shouldStore ? (byte)0x0B : (byte)0x0A, subCommand: 0x1F, subNode: subNode, data: data);
+            return Write(ccbLength: shouldStore ? (byte)0x0B : (byte)0x0A, subCommand: 0x1F, subNode: subNode, data: data, result: $"Special function 1 is configured.");
         }
-        public void ConfigureSpecialFunctionTwo(byte subNode = 0xFC, SpecialFunctionTwoConfig? config = null, bool shouldStore = false) {
+        public string ConfigureSpecialFunctionTwo(byte subNode = 0xFC, SpecialFunctionTwoConfig? config = null, bool shouldStore = false) {
             config ??= new SpecialFunctionTwoConfig();
             byte configuration = ConfigConverter.SpecialFunctionTwoConfigurationToByte(config);
             byte[] data = shouldStore ? [0x0F, configuration, 0x55] : [0x0F, configuration];
-            Write(ccbLength: shouldStore ? (byte)0x0B : (byte)0x0A, subCommand: 0x1F, subNode: subNode, data: data);
+            return Write(ccbLength: shouldStore ? (byte)0x0B : (byte)0x0A, subCommand: 0x1F, subNode: subNode, data: data, result: $"Special function 2 is configured.");
         }
-        public void GetDeviceFirmwareModelInformation(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0xFA, subNode: subNode);
+        public string GetDeviceFirmwareModelInformation(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0xFA, subNode: subNode, result: $"Getting device firmware model information.");
         }
-        public void GetDeviceDetailConfiguredInformation(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0xFC, subNode: subNode);
+        public string GetDeviceDetailConfiguredInformation(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0xFC, subNode: subNode, result: $"Getting device detail configured information.");
         }
-        public void SetControllerPollingRange(byte pollingRange = 0xFA) {
-            Write(ccbLength: 0x08, subCommand: 0x08, subNode: pollingRange);
+        public string SetControllerPollingRange(byte pollingRange = 0xFA) {
+            return Write(ccbLength: 0x08, subCommand: 0x08, subNode: pollingRange, result: $"Controller polling range is set to {pollingRange}.");
         }
-        public void GetConnectedPickTagsNodeAddresses() {
-            Write(ccbLength: 0x07, subCommand: 0x09);
+        public string GetConnectedPickTagsNodeAddresses() {
+            return Write(ccbLength: 0x07, subCommand: 0x09, result: $"Getting connected pick tags.");
         }
-        public void Reset(byte subNode = 0xFC) {
-            Write(ccbLength: 0x08, subCommand: 0x14, subNode: subNode);
+        public string Reset(byte subNode = 0xFC) {
+            return Write(ccbLength: 0x08, subCommand: 0x14, subNode: subNode, result: $"Pick tags resetted.");
         }
-        public void SetNodeAddress(byte oldSubNode, byte newSubNode) {
+        public string SetNodeAddress(byte oldSubNode, byte newSubNode) {
             byte[] data = [0x40, 0x1B, 0x1B, 0x10, newSubNode];
-            Write(ccbLength: 0x0D, subCommand: 0x3A, subNode: oldSubNode, data: data);
+            return Write(ccbLength: 0x0D, subCommand: 0x3A, subNode: oldSubNode, data: data, result: $"Changed {oldSubNode} to {newSubNode}.");
         }
+        #endregion
+        #region Read Methods
+        private void Read() {
+            if (_stream!.DataAvailable) {
+                List<byte> ccb = [];
+                byte ccbFirstByte = (byte)_stream.ReadByte();
+                ccb.Add(ccbFirstByte);
+                for (int i = 0; i < ccbFirstByte - 1; i++) {
+                    byte nextByte = (byte)_stream.ReadByte();
+                    ccb.Add(nextByte);
+                }
+                ReadInvoke([.. ccb]);
+            }
+        }
+        public static string ReadControl(byte[] cbb) {
+            byte subCommand = cbb[6];
+            byte subNode = cbb[7];
+            byte[]? data = cbb.Length > 8 ? cbb[8..] : null;
+            return subCommand switch {
+                0x06 => ReadConfirmationButtonPressing(subNode: subNode, data: data!),
+                0x07 => ReadShortageButtonPressing(subNode: subNode, data: data!),
+                0x09 => ReadConnectedPickTagsNodeAddresses(data: data!),
+                0x0A => ReadTimeout(subNode: subNode),
+                0x0B => ReadMalfunction(subNode: subNode),
+                0x0C => ReadIllegalCommand(subNode: subNode),
+                0x0D => ReadConfirmationButtonLocked(subNode: subNode),
+                0x0E => ReadOldDeviceResettedOrConnected(subNode: subNode),
+                0x0F => ReadQuantity(subNode: subNode, data: data!),
+                0xFA => ReadPickTagModelName(subNode: subNode, data: data!),
+                0xFC => ReadDeviceDetailConfiguredInformation(subNode: subNode/*, data: data!*/),
+                /*0x64 => ReadSpecial(subNode: subNode, data: data!),*/
+                _ => "This return message is not implemented yet",
+            };
+        }
+        private static string ReadConfirmationButtonPressing(byte subNode, byte[] data) {
+            byte[] valueBytes = new byte[6];
+            Array.Copy(data, 0, valueBytes, 0, 6);
+            string value = ValueConverter.ToString(valueBytes);
+            return $"Confirmation button pressed on {subNode:D3} with {value}";
+        }
+        private static string ReadShortageButtonPressing(byte subNode, byte[] data) {
+            byte[] valueBytes = new byte[6];
+            Array.Copy(data, 0, valueBytes, 0, 6);
+            string value = ValueConverter.ToString(valueBytes);
+            return $"Shortage button pressed on {subNode:D3} with {value}";
+        }
+        private static string ReadTimeout(byte subNode) {
+            return $"Timeout on {subNode:D3}";
+        }
+        private static string ReadMalfunction(byte subNode) {
+            return $"Malfunction on {subNode:D3}";
+        }
+        private static string ReadIllegalCommand(byte subNode) {
+            return $"IllegalCommand on {subNode:D3}";
+        }
+        private static string ReadConfirmationButtonLocked(byte subNode) {
+            return $"Confirmation Button Locked on {subNode:D3}";
+        }
+        private static string ReadOldDeviceResettedOrConnected(byte subNode) {
+            return $"{subNode:D3} resetted / connected";
+        }
+        private static string ReadQuantity(byte subNode, byte[] data) {
+            byte[] valueBytes = new byte[6];
+            Array.Copy(data, 0, valueBytes, 0, 6);
+            string value = ValueConverter.ToString(valueBytes);
+            return $"Quantity on {subNode:D3} is {value}";
+        }
+        private static string ReadConnectedPickTagsNodeAddresses(byte[] data) {
+            byte[] dataOfNodeAddresses = data[3..];
+            List<byte> nodeAddresses = [];
+            for (int byteIndex = 0; byteIndex < dataOfNodeAddresses.Length; byteIndex++) {
+                byte currentByte = dataOfNodeAddresses[byteIndex];
+                for (int bitIndex = 0; bitIndex < 8; bitIndex++) {
+                    if ((currentByte & (1 << bitIndex)) == 0) {
+                        byte nodeAddress = (byte)(byteIndex * 8 + bitIndex + 1);
+                        nodeAddresses.Add(nodeAddress);
+                    }
+                }
+            }
+            return $"Connected pick tags: {string.Join(", ", nodeAddresses)}";
+        }
+        private static string ReadDeviceDetailConfiguredInformation(byte subNode/*, byte[] data*/) {
+            // Will be implemented for full functionality in the future. Right now only returning device status.
+            return $"{subNode:D3} resetted / connected";
+        }
+        // TODO: Implement ReadSpecial.
+        private static string ReadPickTagModelName(byte subNode, byte[] data) {
+            string value = Encoding.ASCII.GetString(data);
+            return $"Pick tag {subNode:D3} is {value}";
+        }
+        private void ReadContinuously(CancellationToken cancellationToken) {
+            while (!cancellationToken.IsCancellationRequested) {
+                Read();
+            }
+        }
+        private void ReadInvoke(byte[] ccb) {
+            ReadAction!.Invoke(ccb);
+        }
+        #endregion
     }
 }
