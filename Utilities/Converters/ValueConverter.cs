@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 namespace PickToLight.Core.Utilities.Converters {
     public partial class ValueConverter {
         public static byte[] ToBytes(string value) {

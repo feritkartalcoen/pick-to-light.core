@@ -1,7 +1,9 @@
-﻿namespace PickToLight.Core.Utilities.Converters {
+﻿using System;
+
+namespace PickToLight.Core.Utilities.Converters {
     public class CCBConverter {
         public static byte[] ToByte(string bytesString) {
-            string[] strings = bytesString.Split(" ");
+            string[] strings = bytesString.Split(' ');
             byte[] bytes = new byte[strings.Length];
             for (int i = 0; i < strings.Length; i++) {
                 bytes[i] = Convert.ToByte(strings[i], 16);
