@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text;
-
 namespace PickToLight.Core.Utilities.Converters {
 	public class ValueConverter {
 		public static byte[] ToBytes(string value) {
@@ -12,7 +11,6 @@ namespace PickToLight.Core.Utilities.Converters {
 			}
 			return bytes;
 		}
-
 		public static string ToString(byte[] value) {
 			int startIndex = 0;
 			while (startIndex < 6 && value[startIndex] == 0) {

@@ -1,5 +1,5 @@
 ﻿namespace PickToLight.Core.Models.Enums {
-	public enum ControllerPort {
+	public enum MessageType {
 		Port1 = 0x60,
 		Port2 = 0x61
 	}
