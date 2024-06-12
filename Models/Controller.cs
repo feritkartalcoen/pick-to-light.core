@@ -1,4 +1,5 @@
 ﻿namespace PickToLight.Core.Models {
+	using PickToLight.Core.Models.Actions;
 	using PickToLight.Core.Models.Configurations;
 	using PickToLight.Core.Models.Enums;
 	using PickToLight.Core.Services;
@@ -22,7 +23,7 @@
 					NodeAddress = i + 1
 				});
 			}
-			_controllerService = new(PickTags);
+			_controllerService = new(PickTags, OnReadActions);
 			_controllerService.Update += new(() => {
 				Update?.Invoke();
 			});
@@ -41,6 +42,7 @@
 		public string IpAddress { get; init; }
 		public bool IsConnected { get; private set; } = false;
 		public MessageType MessageType { get; set; } = MessageType.Port1;
+		public OnReadActions OnReadActions { get; set; } = OnReadActions.Default();
 		public List<PickTag> PickTags { get; private set; } = [];
 		public int PickTagsCapacity { get; private set; }
 		public int PickTagsCapacityPerChannel { get; } = 30;

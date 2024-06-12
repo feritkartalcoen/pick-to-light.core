@@ -1,5 +1,6 @@
 ﻿namespace PickToLight.Core.Services {
 	using PickToLight.Core.Models;
+	using PickToLight.Core.Models.Actions;
 	using PickToLight.Core.Models.Configurations;
 	using PickToLight.Core.Models.Datas;
 	using PickToLight.Core.Models.Enums;
@@ -11,7 +12,7 @@
 	using System.Linq;
 	using System.Net.Sockets;
 	using System.Threading;
-	public class ControllerService(List<PickTag> pickTags) : IControllerService {
+	public class ControllerService(List<PickTag> pickTags, OnReadActions onReadActions) : IControllerService {
 		#region Fields
 		private CancellationTokenSource? _cancellationTokenSource;
 		private NetworkStream? _networkStream;
@@ -595,7 +596,11 @@
 			Debug.WriteLine($"<= {communicationControlBlock.ToHexadecimalString()}");
 			switch (communicationControlBlock.SubCommand) {
 				case SubCommand.ButtonsLocked: OnButtonsLocked(communicationControlBlock); break;
-				case SubCommand.ConfirmationButtonPressed: OnConfirmationButtonPressed(communicationControlBlock); break;
+				case SubCommand.ConfirmationButtonPressed: {
+					OnConfirmationButtonPressed(communicationControlBlock);
+					onReadActions.OnConfirmationButtonPressed();
+					break;
+				}
 				case SubCommand.RequestConnectedPickTagsAndConnectedPickTagsReceived: OnConnectedPickTagsReceived(communicationControlBlock); break;
 				case SubCommand.Illegal: OnIllegal(communicationControlBlock); break;
 				case SubCommand.Malfunction: OnMalfunction(communicationControlBlock); break;

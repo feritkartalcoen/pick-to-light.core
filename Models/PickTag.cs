@@ -42,32 +42,6 @@
 		public string Value { get; set; } = string.Empty;
 		#endregion
 		#region Methods
-		public void Revert() {
-			AvailableDigitsCount = 6;
-			BlinkingTimeInterval = BlinkingTimeInterval.HalfSecond;
-			Color = Color.Red;
-			ConfirmedValue = string.Empty;
-			FlashingTimeInterval = FlashingTimeInterval.HalfSecond;
-			IsAliveIndicatorEnabled = true;
-			IsBuzzerOn = false;
-			IsCompletionMarkDisplayingEnabled = false;
-			IsConfirmationButtonEnabled = true;
-			IsCycleEditFunctionEnabled = false;
-			IsDeviceSelfTestingFunctionEnabled = true;
-			IsDisplayingCommunicationTimeoutEnabled = true;
-			IsDummyKeyEnabled = false;
-			IsFlashing = false;
-			IsKeyCodeReturnEnabled = false;
-			IsLedOn = false;
-			IsNodeAddressConfigurationEnabled = true;
-			IsRedisplayingEnabled = true;
-			IsShortageButtonEnabled = true;
-			IsStockModeQuickCompilationEnabled = false;
-			IsUpDownCountEnabled = false;
-			PickTagMode = PickTagMode.Picking;
-			ShortageValue = string.Empty;
-			Value = string.Empty;
-		}
 		public static PickTag GetPickTag(int? nodeAddress, List<PickTag> pickTags) {
 			return pickTags.Find(pickTag => pickTag.NodeAddress == nodeAddress && pickTag.IsConnected)!;
 		}
@@ -172,6 +146,32 @@
 		}
 		public void Reset() {
 			_pickTagService.Reset();
+		}
+		public void Revert() {
+			AvailableDigitsCount = 6;
+			BlinkingTimeInterval = BlinkingTimeInterval.HalfSecond;
+			Color = Color.Red;
+			ConfirmedValue = string.Empty;
+			FlashingTimeInterval = FlashingTimeInterval.HalfSecond;
+			IsAliveIndicatorEnabled = true;
+			IsBuzzerOn = false;
+			IsCompletionMarkDisplayingEnabled = false;
+			IsConfirmationButtonEnabled = true;
+			IsCycleEditFunctionEnabled = false;
+			IsDeviceSelfTestingFunctionEnabled = true;
+			IsDisplayingCommunicationTimeoutEnabled = true;
+			IsDummyKeyEnabled = false;
+			IsFlashing = false;
+			IsKeyCodeReturnEnabled = false;
+			IsLedOn = false;
+			IsNodeAddressConfigurationEnabled = true;
+			IsRedisplayingEnabled = true;
+			IsShortageButtonEnabled = true;
+			IsStockModeQuickCompilationEnabled = false;
+			IsUpDownCountEnabled = false;
+			PickTagMode = PickTagMode.Picking;
+			ShortageValue = string.Empty;
+			Value = string.Empty;
 		}
 		public void SwitchToPickingMode() {
 			_pickTagService.SwitchToPickingMode();
