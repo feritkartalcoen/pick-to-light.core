@@ -9,7 +9,7 @@
 		#endregion
 		#region Constructors
 		public PickTag() {
-			_pickTagService = new(this);
+			_pickTagService = new PickTagService(this);
 		}
 		#endregion
 		#region Properties
@@ -43,7 +43,7 @@
 		#endregion
 		#region Methods
 		public static PickTag GetPickTag(int? nodeAddress, List<PickTag> pickTags) {
-			return pickTags.Find(pickTag => pickTag.NodeAddress == nodeAddress && pickTag.IsConnected)!;
+			return pickTags.Find(pickTag => pickTag.NodeAddress == nodeAddress && pickTag.IsConnected);
 		}
 		public static List<PickTag> GetPickTags(List<PickTag> pickTags) {
 			return pickTags.FindAll(pickTag => pickTag.IsConnected);

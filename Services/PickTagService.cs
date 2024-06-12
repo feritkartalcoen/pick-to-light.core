@@ -4,7 +4,11 @@
 	using PickToLight.Core.Models.Enums;
 	using PickToLight.Core.Services.Interfaces;
 	using System.Diagnostics;
-	public class PickTagService(PickTag pickTag) : IPickTagService {
+	public class PickTagService : IPickTagService {
+		public PickTag pickTag;
+		public PickTagService(PickTag pickTag) {
+			this.pickTag = pickTag;
+		}
 		#region Methods
 		public void ChangeAvailableDigitsForCounting(int availableDigitsCount) {
 			pickTag.AvailableDigitsCount = availableDigitsCount;

@@ -12,17 +12,23 @@
 	using System.Linq;
 	using System.Net.Sockets;
 	using System.Threading;
-	public class ControllerService(List<PickTag> pickTags, OnReadActions onReadActions) : IControllerService {
+	public class ControllerService : IControllerService {
 		#region Fields
-		private CancellationTokenSource? _cancellationTokenSource;
-		private NetworkStream? _networkStream;
-		private TcpClient? _tcpClient = new();
+		private CancellationTokenSource _cancellationTokenSource;
+		private NetworkStream _networkStream;
+		private TcpClient _tcpClient = new TcpClient();
+		public List<PickTag> pickTags;
+		public OnReadActions onReadActions;
 		#endregion
+		public ControllerService(List<PickTag> pickTags, OnReadActions onReadActions) {
+			this.pickTags = pickTags;
+			this.onReadActions = onReadActions;
+		}
 		#region Delegates
 		public delegate void OnUpdate();
 		#endregion
 		#region Events
-		public event OnUpdate? Update;
+		public event OnUpdate Update;
 		#endregion
 		#region Methods
 		public void ChangeAvailableDigitsForCounting(MessageType messageType, int? nodeAddress, int availableDigitsCount) {
@@ -33,7 +39,7 @@
 					pickTag.ChangeAvailableDigitsForCounting(availableDigitsCount);
 				});
 			}
-			List<byte> data = [(byte)availableDigitsCount];
+			List<byte> data = new List<byte> { (byte)availableDigitsCount };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangeAvailableDigitsForCounting,
@@ -49,7 +55,7 @@
 					pickTag.ChangeBlinkingTimeInterval(blinkingTimeInterval);
 				});
 			}
-			List<byte> data = [(byte)PickTagConfiguration.ChangeBlinkingTimeInterval, (byte)blinkingTimeInterval];
+			List<byte> data = new List<byte> { (byte)PickTagConfiguration.ChangeBlinkingTimeInterval, (byte)blinkingTimeInterval };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangePickTagConfiguration,
@@ -65,7 +71,7 @@
 					pickTag.ChangeColor(color);
 				});
 			}
-			List<byte> data = [(byte)PickTagConfiguration.ChangeColor, (byte)color];
+			List<byte> data = new List<byte> { (byte)PickTagConfiguration.ChangeColor, (byte)color };
 			if (shouldStore) data.Add((byte)DefaultByte.StoreIntoEEPROM);
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
@@ -82,7 +88,7 @@
 					pickTag.ChangeDigitsBrightness(digitsBrightnessConfiguration);
 				});
 			}
-			List<byte> data = [(byte)PickTagConfiguration.ChangeDigitsBrightness, digitsBrightnessConfiguration.ToByte()];
+			List<byte> data = new List<byte> { (byte)PickTagConfiguration.ChangeDigitsBrightness, digitsBrightnessConfiguration.ToByte() };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangePickTagConfiguration,
@@ -98,7 +104,7 @@
 					pickTag.ChangeFlashingTimeInterval(flashingTimeInterval);
 				});
 			}
-			List<byte> data = [(byte)DefaultByte.Reserved, (byte)flashingTimeInterval];
+			List<byte> data = new List<byte> { (byte)DefaultByte.Reserved, (byte)flashingTimeInterval };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangeFlashingTimeInterval,
@@ -107,7 +113,7 @@
 			});
 		}
 		public void ChangeNodeAddress(MessageType messageType, int nodeAddress, int newNodeAddress) {
-			List<byte> data = [(byte)DefaultByte.ReservedUnknown40, (byte)DefaultByte.ReservedUnknown1B, (byte)DefaultByte.ReservedUnknown1B, (byte)DefaultByte.ReservedUnknown10, (byte)newNodeAddress];
+			List<byte> data = new List<byte> { (byte)DefaultByte.ReservedUnknown40, (byte)DefaultByte.ReservedUnknown1B, (byte)DefaultByte.ReservedUnknown1B, (byte)DefaultByte.ReservedUnknown10, (byte)newNodeAddress };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangeNodeAddress,
@@ -123,7 +129,7 @@
 					pickTag.ChangePickTagConfigurationWithSpecialFunctionOne(specialFunctionOneConfiguration);
 				});
 			}
-			List<byte> data = [(byte)PickTagConfiguration.ChangePickTagConfigurationWithSpecialFunctionOne, specialFunctionOneConfiguration.ToByte()];
+			List<byte> data = new List<byte> { (byte)PickTagConfiguration.ChangePickTagConfigurationWithSpecialFunctionOne, specialFunctionOneConfiguration.ToByte() };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangePickTagConfiguration,
@@ -139,7 +145,7 @@
 					pickTag.ChangePickTagConfigurationWithSpecialFunctionTwo(specialFunctionTwoConfiguration);
 				});
 			}
-			List<byte> data = [(byte)PickTagConfiguration.ChangePickTagConfigurationWithSpecialFunctionTwo, specialFunctionTwoConfiguration.ToByte()];
+			List<byte> data = new List<byte> { (byte)PickTagConfiguration.ChangePickTagConfigurationWithSpecialFunctionTwo, specialFunctionTwoConfiguration.ToByte() };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangePickTagConfiguration,
@@ -155,7 +161,7 @@
 					pickTag.ChangePickTagModeConfiguration(pickTagModeConfiguration);
 				});
 			}
-			List<byte> data = [(byte)PickTagConfiguration.ChangePickTagModeConfigurationPermanently, pickTagModeConfiguration.ToByte(), (byte)DefaultByte.StoreIntoEEPROM];
+			List<byte> data = new List<byte> { (byte)PickTagConfiguration.ChangePickTagModeConfigurationPermanently, pickTagModeConfiguration.ToByte(), (byte)DefaultByte.StoreIntoEEPROM };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangePickTagConfiguration,
@@ -171,7 +177,7 @@
 					pickTag.ChangePickTagModeConfiguration(pickTagModeConfiguration);
 				});
 			}
-			List<byte> data = [(byte)PickTagConfiguration.ChangePickTagModeConfigurationTemporarily, pickTagModeConfiguration.ToByte()];
+			List<byte> data = new List<byte> { (byte)PickTagConfiguration.ChangePickTagModeConfigurationTemporarily, pickTagModeConfiguration.ToByte() };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangePickTagConfiguration,
@@ -180,7 +186,7 @@
 			});
 		}
 		public void ChangePollingRange(MessageType messageType, int pollingRange) {
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangePollingRange,
 				SubNode = pollingRange,
@@ -195,7 +201,7 @@
 					pickTag.ChangeValidDigitsForCounting(validDigitsConfiguration);
 				});
 			}
-			List<byte> data = [(byte)PickTagConfiguration.ChangeValidDigitsForCounting, validDigitsConfiguration.ToByte()];
+			List<byte> data = new List<byte> { (byte)PickTagConfiguration.ChangeValidDigitsForCounting, validDigitsConfiguration.ToByte() };
 			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.ChangePickTagConfiguration,
@@ -223,7 +229,7 @@
 				if (_tcpClient == null || !_tcpClient.Connected) {
 					_tcpClient = new TcpClient(ipAddress, port);
 					_networkStream = _tcpClient.GetStream();
-					_cancellationTokenSource = new();
+					_cancellationTokenSource = new CancellationTokenSource();
 					new Thread(() => ReadContinuously(_cancellationTokenSource.Token)).Start();
 					Debug.WriteLine($"Connected to {ipAddress}:{port}.");
 				} else {
@@ -243,7 +249,7 @@
 					pickTag.DisableConfirmationButton();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.DisableConfirmationButton,
 				SubNode = nodeAddress,
@@ -258,7 +264,7 @@
 					pickTag.DisableShortageButton();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.DisableShortageButton,
 				SubNode = nodeAddress,
@@ -292,8 +298,8 @@
 					pickTag.Display(value, shouldFlash);
 				});
 			}
-			List<byte> data = [.. ValueConverter.ToBytes(value), 0x00];
-			Write(new() {
+			List<byte> data = new List<byte>(ValueConverter.ToBytes(value)) { 0x00 };
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = !shouldFlash ? SubCommand.Display : SubCommand.DisplayAndFlash,
 				SubNode = nodeAddress,
@@ -308,7 +314,7 @@
 					pickTag.DisplayNodeAddress();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.DisplayNodeAddress,
 				SubNode = nodeAddress,
@@ -323,7 +329,7 @@
 					pickTag.EmulateConfirmationButtonPressing();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.EmulateConfirmationButtonPressing,
 				SubNode = nodeAddress,
@@ -338,7 +344,7 @@
 					pickTag.EmulateShortageButtonPressing();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.EmulateShortageButtonPressing,
 				SubNode = nodeAddress,
@@ -353,7 +359,7 @@
 					pickTag.EnableConfirmationButton();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.EnableConfirmationButton,
 				SubNode = nodeAddress,
@@ -368,7 +374,7 @@
 					pickTag.EnableShortageButton();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.EnableShortageButton,
 				SubNode = nodeAddress,
@@ -383,7 +389,7 @@
 					pickTag.Flash();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.Flash,
 				SubNode = nodeAddress,
@@ -396,13 +402,13 @@
 		public void OnConfirmationButtonPressed(CommunicationControlBlock communicationControlBlock) {
 			List<byte> data = communicationControlBlock.Data;
 			data.RemoveAt(communicationControlBlock.Data.Count - 1);
-			byte[] valueBytes = [.. data];
+			byte[] valueBytes = data.ToArray();
 			string value = ValueConverter.ToString(valueBytes);
 			PickTag.GetPickTag(communicationControlBlock.SubNode, pickTags).OnConfirmationButtonPressed(value);
 		}
 		public void OnConnectedPickTagsReceived(CommunicationControlBlock communicationControlBlock) {
-			byte[] dataOfNodeAddresses = [.. communicationControlBlock.Data[3..]];
-			List<int> nodeAddresses = [];
+			byte[] dataOfNodeAddresses = communicationControlBlock.Data.Skip(3).ToArray();
+			List<int> nodeAddresses = new List<int>();
 			for (int byteIndex = 0; byteIndex < dataOfNodeAddresses.Length; byteIndex++) {
 				byte currentByte = dataOfNodeAddresses[byteIndex];
 				for (int bitIndex = 0; bitIndex < 8; bitIndex++) {
@@ -432,14 +438,14 @@
 		public void OnQuantityInStockReceived(CommunicationControlBlock communicationControlBlock) {
 			List<byte> data = communicationControlBlock.Data;
 			data.RemoveAt(communicationControlBlock.Data.Count - 1);
-			byte[] valueBytes = [.. data];
+			byte[] valueBytes = data.ToArray();
 			string value = ValueConverter.ToString(valueBytes);
 			PickTag.GetPickTag(communicationControlBlock.SubNode, pickTags).OnQuantityInStockReceived(value);
 		}
 		public void OnShortageButtonPressed(CommunicationControlBlock communicationControlBlock) {
 			List<byte> data = communicationControlBlock.Data;
 			data.RemoveAt(communicationControlBlock.Data.Count - 1);
-			byte[] valueBytes = [.. data];
+			byte[] valueBytes = data.ToArray();
 			string value = ValueConverter.ToString(valueBytes);
 			PickTag.GetPickTag(communicationControlBlock.SubNode, pickTags).OnShortageButtonPressed(value);
 		}
@@ -450,7 +456,7 @@
 			Debug.WriteLine($"{nameof(OnTimeout)} on {nameof(ControllerService)} is not implemented yet.");
 		}
 		public void RequestConnectedPickTags(MessageType messageType) {
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.RequestConnectedPickTagsAndConnectedPickTagsReceived,
 				HasSubNode = false,
@@ -465,7 +471,7 @@
 					pickTag.RequestPickTagDetails();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.RequestPickTagDetailsAndOnPickTagDetailsReceived,
 				SubNode = nodeAddress,
@@ -480,7 +486,7 @@
 					pickTag.RequestPickTagModel();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.RequestPickTagModelAndOnPickTagModelReceived,
 				SubNode = nodeAddress,
@@ -495,7 +501,7 @@
 					pickTag.Reset();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.Reset,
 				SubNode = nodeAddress,
@@ -510,7 +516,7 @@
 					pickTag.SwitchToPickingMode();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.SwitchToPickingMode,
 				SubNode = nodeAddress,
@@ -525,7 +531,7 @@
 					pickTag.SwitchToStockMode();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.SwitchToStockMode,
 				SubNode = nodeAddress,
@@ -540,7 +546,7 @@
 					pickTag.TurnBuzzerOff();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.TurnBuzzerOff,
 				SubNode = nodeAddress,
@@ -555,7 +561,7 @@
 					pickTag.TurnBuzzerOn();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.TurnBuzzerOn,
 				SubNode = nodeAddress,
@@ -570,7 +576,7 @@
 					pickTag.TurnLedOff();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.TurnLedOff,
 				SubNode = nodeAddress,
@@ -585,7 +591,7 @@
 					pickTag.TurnLedOn();
 				});
 			}
-			Write(new() {
+			Write(new CommunicationControlBlock() {
 				MessageType = messageType,
 				SubCommand = SubCommand.TurnLedOn,
 				SubNode = nodeAddress,
@@ -615,15 +621,15 @@
 		}
 		private void Read() {
 			try {
-				if (_networkStream!.DataAvailable) {
-					List<byte> bytes = [];
+				if (_networkStream.DataAvailable) {
+					List<byte> bytes = new List<byte>();
 					byte firstByte = (byte)_networkStream.ReadByte();
 					bytes.Add(firstByte);
 					for (int i = 0; i < firstByte - 1; i++) {
 						byte nextByte = (byte)_networkStream.ReadByte();
 						bytes.Add(nextByte);
 					}
-					CommunicationControlBlock communicationControlBlock = CommunicationControlBlock.FromBytes([.. bytes]);
+					CommunicationControlBlock communicationControlBlock = CommunicationControlBlock.FromBytes(bytes.ToArray());
 					OnRead(communicationControlBlock);
 				}
 			} catch (Exception exception) {

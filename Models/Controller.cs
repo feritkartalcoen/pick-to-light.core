@@ -19,12 +19,12 @@
 			PollingRange = PickTagsCapacity;
 			Port = port;
 			for (int i = 0; i < pickTagsCount; i++) {
-				PickTags.Add(new() {
+				PickTags.Add(new PickTag() {
 					NodeAddress = i + 1
 				});
 			}
-			_controllerService = new(PickTags, OnReadActions);
-			_controllerService.Update += new(() => {
+			_controllerService = new ControllerService(PickTags, OnReadActions);
+			_controllerService.Update += new ControllerService.OnUpdate(() => {
 				Update?.Invoke();
 			});
 		}
@@ -33,22 +33,22 @@
 		public delegate void OnUpdate();
 		#endregion
 		#region Events
-		public event OnUpdate? Update;
+		public event OnUpdate Update;
 		#endregion
 		#region Properties
 		public int ChannelsCount { get; private set; }
-		public ControllerModel ControllerModel { get; init; }
+		public ControllerModel ControllerModel { get; }
 		public int ControllerPortsCount { get; private set; }
-		public string IpAddress { get; init; }
+		public string IpAddress { get; }
 		public bool IsConnected { get; private set; } = false;
 		public MessageType MessageType { get; set; } = MessageType.Port1;
 		public OnReadActions OnReadActions { get; set; } = OnReadActions.Default();
-		public List<PickTag> PickTags { get; private set; } = [];
+		public List<PickTag> PickTags { get; private set; } = new List<PickTag>();
 		public int PickTagsCapacity { get; private set; }
 		public int PickTagsCapacityPerChannel { get; } = 30;
 		public int PickTagsCount { get; private set; }
 		public int PollingRange { get; private set; }
-		public int Port { get; init; }
+		public int Port { get; }
 		#endregion
 		#region Methods
 		public void ChangeAvailableDigitsForCounting(int availableDigitsCount, int? nodeAddress = null) {

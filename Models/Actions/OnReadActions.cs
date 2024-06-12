@@ -15,7 +15,7 @@
 		#endregion
 		#region Methods
 		public static OnReadActions Default() {
-			return new();
+			return new OnReadActions();
 		}
 		#endregion
 	}
