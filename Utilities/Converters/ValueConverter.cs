@@ -1,7 +1,8 @@
-﻿using System;
-using System.Text;
-namespace PickToLight.Core.Utilities.Converters {
+﻿namespace PickToLight.Core.Utilities.Converters {
+	using System;
+	using System.Text;
 	public class ValueConverter {
+		#region Methods
 		public static byte[] ToBytes(string value) {
 			byte[] bytes = new byte[6];
 			byte[] inputBytes = Encoding.ASCII.GetBytes(value);
@@ -20,5 +21,6 @@ namespace PickToLight.Core.Utilities.Converters {
 			Array.Copy(value, startIndex, trimmedBytes, 0, 6 - startIndex);
 			return Encoding.ASCII.GetString(trimmedBytes);
 		}
+		#endregion
 	}
 }

@@ -1,16 +1,19 @@
-﻿using PickToLight.Core.Models.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-namespace PickToLight.Core.Models.Datas {
+﻿namespace PickToLight.Core.Models.Datas {
+	using PickToLight.Core.Models.Enums;
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 	public class CommunicationControlBlock {
-		public bool HasSubNode { get; set; } = true;
-		public bool HasData { get; set; } = true;
+		#region Properties
 		public byte CommunicationControlBlockLength { get; private set; } = default;
+		public List<byte> Data { get; set; } = [];
+		public bool HasData { get; set; } = true;
+		public bool HasSubNode { get; set; } = true;
 		public MessageType MessageType { get; set; }
 		public SubCommand SubCommand { get; set; }
 		public int? SubNode { get; set; }
-		public List<byte> Data { get; set; } = [];
+		#endregion
+		#region Methods
 		public static CommunicationControlBlock FromBytes(byte[] communicationControlBlockBytes) {
 			CommunicationControlBlock communicationControlBlock = new() {
 				CommunicationControlBlockLength = communicationControlBlockBytes[0],
@@ -48,5 +51,6 @@ namespace PickToLight.Core.Models.Datas {
 		public string ToHexadecimalString() {
 			return BitConverter.ToString(ToBytes()).Replace("-", " ");
 		}
+		#endregion
 	}
 }
