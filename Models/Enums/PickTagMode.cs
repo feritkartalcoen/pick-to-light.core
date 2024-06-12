@@ -1,6 +1,6 @@
 ﻿namespace PickToLight.Core.Models.Enums {
-    public enum PickTagMode {
-        Stock,
-        Pick
-    }
+	public enum PickTagMode {
+		Stock,
+		Picking
+	}
 }
