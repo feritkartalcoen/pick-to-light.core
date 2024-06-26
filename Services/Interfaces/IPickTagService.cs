@@ -19,7 +19,7 @@
 		public void DisableConfirmationButton();
 		public void DisableShortageButton();
 		public void Disconnect();
-		public void Display(string value, bool shouldFlash);
+		public void Display(string value, string dotsPosition, bool shouldFlash);
 		public void DisplayNodeAddress();
 		public void EmulateConfirmationButtonPressing();
 		public void EmulateShortageButtonPressing();
@@ -27,12 +27,12 @@
 		public void EnableShortageButton();
 		public void Flash();
 		public void OnButtonsLocked();
-		public void OnConfirmationButtonPressed(string value);
+		public void OnConfirmationButtonPressed(string value, string dotsPosition);
 		public void OnIllegal();
 		public void OnMalfunction();
 		public void OnOldPickTagResetOrConnect();
-		public void OnQuantityInStockReceived(string value);
-		public void OnShortageButtonPressed(string value);
+		public void OnQuantityInStockReceived(string value, string dotsPosition);
+		public void OnShortageButtonPressed(string value, string dotsPosition);
 		public void OnSpecialReceived();
 		public void OnTimeout();
 		public void RequestPickTagDetails();

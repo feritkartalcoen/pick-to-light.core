@@ -49,6 +49,7 @@
 			pickTag.Value = string.Empty;
 			pickTag.ConfirmedValue = string.Empty;
 			pickTag.ShortageValue = string.Empty;
+			pickTag.DotsPosition = "000000";
 			pickTag.IsLedOn = false;
 			pickTag.IsBuzzerOn = false;
 			pickTag.IsFlashing = false;
@@ -65,8 +66,9 @@
 		public void Disconnect() {
 			pickTag.IsConnected = false;
 		}
-		public void Display(string value, bool shouldFlash) {
+		public void Display(string value, string dotsPosition, bool shouldFlash) {
 			pickTag.Value = value;
+			pickTag.DotsPosition = dotsPosition;
 			pickTag.IsFlashing = shouldFlash;
 			pickTag.IsLedOn = true;
 			pickTag.IsBuzzerOn = true;
@@ -95,9 +97,10 @@
 		public void OnButtonsLocked() {
 			Debug.WriteLine($"{nameof(OnButtonsLocked)} on {nameof(PickTagService)} is not implemented yet.");
 		}
-		public void OnConfirmationButtonPressed(string value) {
+		public void OnConfirmationButtonPressed(string value, string dotsPosition) {
 			pickTag.ConfirmedValue = value;
 			pickTag.Value = string.Empty;
+			pickTag.DotsPosition = dotsPosition;
 		}
 		public void OnIllegal() {
 			Debug.WriteLine($"{nameof(OnIllegal)} on {nameof(PickTagService)} is not implemented yet.");
@@ -108,13 +111,15 @@
 		public void OnOldPickTagResetOrConnect() {
 			Debug.WriteLine($"{nameof(OnOldPickTagResetOrConnect)} on {nameof(PickTagService)} is not implemented yet.");
 		}
-		public void OnQuantityInStockReceived(string value) {
+		public void OnQuantityInStockReceived(string value, string dotsPosition) {
 			pickTag.ConfirmedValue = value;
 			pickTag.Value = string.Empty;
+			pickTag.DotsPosition = dotsPosition;
 		}
-		public void OnShortageButtonPressed(string value) {
+		public void OnShortageButtonPressed(string value, string dotsPosition) {
 			pickTag.ShortageValue = value;
 			pickTag.Value = string.Empty;
+			pickTag.DotsPosition = dotsPosition;
 		}
 		public void OnSpecialReceived() {
 			Debug.WriteLine($"{nameof(OnSpecialReceived)} on {nameof(PickTagService)} is not implemented yet.");

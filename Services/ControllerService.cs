@@ -73,6 +73,7 @@
 				SubNode = nodeAddress,
 				Data = data
 			});
+			if (shouldStore) Thread.Sleep(100);
 		}
 		public void ChangeDigitsBrightness(MessageType messageType, int? nodeAddress, DigitsBrightnessConfiguration digitsBrightnessConfiguration) {
 			if (nodeAddress != null) {
@@ -162,6 +163,7 @@
 				SubNode = nodeAddress,
 				Data = data
 			});
+			Thread.Sleep(100);
 		}
 		public void ChangePickTagModeConfigurationTemporarily(MessageType messageType, int? nodeAddress, PickTagModeConfiguration pickTagModeConfiguration) {
 			if (nodeAddress != null) {
@@ -284,15 +286,15 @@
 				return false;
 			}
 		}
-		public void Display(MessageType messageType, int? nodeAddress, string value, bool shouldFlash) {
+		public void Display(MessageType messageType, int? nodeAddress, string value, string dotsPosition, bool shouldFlash) {
 			if (nodeAddress != null) {
-				PickTag.GetPickTag(nodeAddress, pickTags).Display(value, shouldFlash);
+				PickTag.GetPickTag(nodeAddress, pickTags).Display(value, dotsPosition, shouldFlash);
 			} else {
 				PickTag.GetPickTags(pickTags).ToList().ForEach(pickTag => {
-					pickTag.Display(value, shouldFlash);
+					pickTag.Display(value, dotsPosition, shouldFlash);
 				});
 			}
-			List<byte> data = [.. ValueConverter.ToBytes(value), 0x00];
+			List<byte> data = [.. ValueConverter.ToBytes(value), DotsPositionConverter.ToByte(dotsPosition)];
 			Write(new() {
 				MessageType = messageType,
 				SubCommand = !shouldFlash ? SubCommand.Display : SubCommand.DisplayAndFlash,
@@ -395,10 +397,10 @@
 		}
 		public void OnConfirmationButtonPressed(CommunicationControlBlock communicationControlBlock) {
 			List<byte> data = communicationControlBlock.Data;
-			data.RemoveAt(communicationControlBlock.Data.Count - 1);
-			byte[] valueBytes = [.. data];
+			byte[] valueBytes = [.. (data.Take(data.Count - 1))];
 			string value = ValueConverter.ToString(valueBytes);
-			PickTag.GetPickTag(communicationControlBlock.SubNode, pickTags).OnConfirmationButtonPressed(value);
+			string dotsPosition = DotsPositionConverter.ToString(data[^1]);
+			PickTag.GetPickTag(communicationControlBlock.SubNode, pickTags).OnConfirmationButtonPressed(value, dotsPosition);
 		}
 		public void OnConnectedPickTagsReceived(CommunicationControlBlock communicationControlBlock) {
 			byte[] dataOfNodeAddresses = [.. communicationControlBlock.Data[3..]];
@@ -431,17 +433,17 @@
 		}
 		public void OnQuantityInStockReceived(CommunicationControlBlock communicationControlBlock) {
 			List<byte> data = communicationControlBlock.Data;
-			data.RemoveAt(communicationControlBlock.Data.Count - 1);
-			byte[] valueBytes = [.. data];
+			byte[] valueBytes = [.. (data.Take(data.Count - 1))];
 			string value = ValueConverter.ToString(valueBytes);
-			PickTag.GetPickTag(communicationControlBlock.SubNode, pickTags).OnQuantityInStockReceived(value);
+			string dotsPosition = DotsPositionConverter.ToString(data[^1]);
+			PickTag.GetPickTag(communicationControlBlock.SubNode, pickTags).OnQuantityInStockReceived(value, dotsPosition);
 		}
 		public void OnShortageButtonPressed(CommunicationControlBlock communicationControlBlock) {
 			List<byte> data = communicationControlBlock.Data;
-			data.RemoveAt(communicationControlBlock.Data.Count - 1);
-			byte[] valueBytes = [.. data];
+			byte[] valueBytes = [.. (data.Take(data.Count - 1))];
 			string value = ValueConverter.ToString(valueBytes);
-			PickTag.GetPickTag(communicationControlBlock.SubNode, pickTags).OnShortageButtonPressed(value);
+			string dotsPosition = DotsPositionConverter.ToString(data[^1]);
+			PickTag.GetPickTag(communicationControlBlock.SubNode, pickTags).OnShortageButtonPressed(value, dotsPosition);
 		}
 		public void OnSpecialReceived(CommunicationControlBlock communicationControlBlock) {
 			Debug.WriteLine($"{nameof(OnSpecialReceived)} on {nameof(ControllerService)} is not implemented yet.");
@@ -593,22 +595,58 @@
 			});
 		}
 		private void OnRead(CommunicationControlBlock communicationControlBlock) {
-			Debug.WriteLine($"<= {communicationControlBlock.ToHexadecimalString()}");
+			Debug.WriteLine($"   {communicationControlBlock.ToHexadecimalString()} <=");
 			switch (communicationControlBlock.SubCommand) {
-				case SubCommand.ButtonsLocked: OnButtonsLocked(communicationControlBlock); break;
+				case SubCommand.ButtonsLocked: {
+					OnButtonsLocked(communicationControlBlock);
+					onReadActions.OnButtonLocked();
+					break;
+				}
 				case SubCommand.ConfirmationButtonPressed: {
 					OnConfirmationButtonPressed(communicationControlBlock);
 					onReadActions.OnConfirmationButtonPressed();
 					break;
 				}
-				case SubCommand.RequestConnectedPickTagsAndConnectedPickTagsReceived: OnConnectedPickTagsReceived(communicationControlBlock); break;
-				case SubCommand.Illegal: OnIllegal(communicationControlBlock); break;
-				case SubCommand.Malfunction: OnMalfunction(communicationControlBlock); break;
-				case SubCommand.OldPickTagResetOrConnect: OnOldPickTagResetOrConnect(communicationControlBlock); break;
-				case SubCommand.QuantityInStockReceived: OnQuantityInStockReceived(communicationControlBlock); break;
-				case SubCommand.ShortageButtonPressed: OnShortageButtonPressed(communicationControlBlock); break;
-				case SubCommand.SpecialReceived: OnSpecialReceived(communicationControlBlock); break;
-				case SubCommand.Timeout: OnTimeout(communicationControlBlock); break;
+				case SubCommand.RequestConnectedPickTagsAndConnectedPickTagsReceived: {
+					OnConnectedPickTagsReceived(communicationControlBlock);
+					onReadActions.OnConnectedPickTagsReceived();
+					break;
+				}
+				case SubCommand.Illegal: {
+					OnIllegal(communicationControlBlock);
+					onReadActions.OnIllegal();
+					break;
+				}
+				case SubCommand.Malfunction: {
+					OnMalfunction(communicationControlBlock);
+					onReadActions.OnMalfunction();
+					break;
+				}
+				case SubCommand.OldPickTagResetOrConnect: {
+					OnOldPickTagResetOrConnect(communicationControlBlock);
+					onReadActions.OnOldPickTagResetOrConnect();
+					break;
+				}
+				case SubCommand.QuantityInStockReceived: {
+					OnQuantityInStockReceived(communicationControlBlock);
+					onReadActions.OnQuantityInStockReceived();
+					break;
+				}
+				case SubCommand.ShortageButtonPressed: {
+					OnShortageButtonPressed(communicationControlBlock);
+					onReadActions.OnShortageButtonPressed();
+					break;
+				}
+				case SubCommand.SpecialReceived: {
+					OnSpecialReceived(communicationControlBlock);
+					onReadActions.OnSpecialReceived();
+					break;
+				}
+				case SubCommand.Timeout: {
+					OnTimeout(communicationControlBlock);
+					onReadActions.OnTimeout();
+					break;
+				}
 				default: break;
 			}
 			Update?.Invoke();

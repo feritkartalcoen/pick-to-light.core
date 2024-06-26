@@ -23,7 +23,7 @@
 		public void DisableConfirmationButton(MessageType messageType, int? nodeAddress);
 		public void DisableShortageButton(MessageType messageType, int? nodeAddress);
 		public bool Disconnect();
-		public void Display(MessageType messageType, int? nodeAddress, string value, bool shouldFlash);
+		public void Display(MessageType messageType, int? nodeAddress, string value, string dotsPosition, bool shouldFlash);
 		public void DisplayNodeAddress(MessageType messageType, int? nodeAddress);
 		public void EmulateConfirmationButtonPressing(MessageType messageType, int? nodeAddress);
 		public void EmulateShortageButtonPressing(MessageType messageType, int? nodeAddress);

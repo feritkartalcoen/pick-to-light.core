@@ -106,8 +106,8 @@
 		public void Disconnect() {
 			IsConnected = !_controllerService.Disconnect();
 		}
-		public void Display(string value, int? nodeAddress = null, bool shouldFlash = false) {
-			_controllerService.Display(MessageType, nodeAddress, value, shouldFlash);
+		public void Display(string value, int? nodeAddress = null, bool shouldFlash = false, string dotsPosition = "000000") {
+			_controllerService.Display(MessageType, nodeAddress, value, dotsPosition, shouldFlash);
 		}
 		public void DisplayNodeAddress(int? nodeAddress = null) {
 			_controllerService.DisplayNodeAddress(MessageType, nodeAddress);

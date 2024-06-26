@@ -17,6 +17,7 @@
 		public BlinkingTimeInterval BlinkingTimeInterval { get; set; } = BlinkingTimeInterval.HalfSecond;
 		public Color Color { get; set; } = Color.Red;
 		public string ConfirmedValue { get; set; } = string.Empty;
+		public string DotsPosition { get; set; } = "000000";
 		public FlashingTimeInterval FlashingTimeInterval { get; set; } = FlashingTimeInterval.HalfSecond;
 		public bool IsAliveIndicatorEnabled { get; set; } = true;
 		public bool IsBuzzerOn { get; set; } = false;
@@ -90,8 +91,8 @@
 		public void Disconnect() {
 			_pickTagService.Disconnect();
 		}
-		public void Display(string value, bool shouldFlash) {
-			_pickTagService.Display(value, shouldFlash);
+		public void Display(string value, string dotsPosition, bool shouldFlash) {
+			_pickTagService.Display(value, dotsPosition, shouldFlash);
 		}
 		public void DisplayNodeAddress() {
 			_pickTagService.DisplayNodeAddress();
@@ -114,8 +115,8 @@
 		public void OnButtonsLocked() {
 			_pickTagService.OnButtonsLocked();
 		}
-		public void OnConfirmationButtonPressed(string value) {
-			_pickTagService.OnConfirmationButtonPressed(value);
+		public void OnConfirmationButtonPressed(string value, string dotsPosition) {
+			_pickTagService.OnConfirmationButtonPressed(value, dotsPosition);
 		}
 		public void OnIllegal() {
 			_pickTagService.OnIllegal();
@@ -126,11 +127,11 @@
 		public void OnOldPickTagResetOrConnect() {
 			_pickTagService.OnOldPickTagResetOrConnect();
 		}
-		public void OnQuantityInStockReceived(string value) {
-			_pickTagService.OnQuantityInStockReceived(value);
+		public void OnQuantityInStockReceived(string value, string dotsPosition) {
+			_pickTagService.OnQuantityInStockReceived(value, dotsPosition);
 		}
-		public void OnShortageButtonPressed(string value) {
-			_pickTagService.OnShortageButtonPressed(value);
+		public void OnShortageButtonPressed(string value, string dotsPosition) {
+			_pickTagService.OnShortageButtonPressed(value, dotsPosition);
 		}
 		public void OnSpecialReceived() {
 			_pickTagService.OnSpecialReceived();
@@ -152,6 +153,7 @@
 			BlinkingTimeInterval = BlinkingTimeInterval.HalfSecond;
 			Color = Color.Red;
 			ConfirmedValue = string.Empty;
+			DotsPosition = "000000";
 			FlashingTimeInterval = FlashingTimeInterval.HalfSecond;
 			IsAliveIndicatorEnabled = true;
 			IsBuzzerOn = false;
